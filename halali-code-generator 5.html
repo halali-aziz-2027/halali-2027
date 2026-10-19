@@ -69,6 +69,6 @@ $('copy').addEventListener('click',async()=>{
  const code=extractActivationCode($('code').value);if(!code){report('ولّد الكود أولًا','error');return;}
  $('code').value=code;
  try{await navigator.clipboard.writeText(code);report('تم نسخ كود التفعيل','success');}
- catch{ $('code').focus();$('code').select();report('حدد الكود وانسخه يدويًا','error'); }
+ catch(err){try{const t=document.createElement('textarea');t.value=code;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();report('تم نسخ كود التفعيل فقط','success');}catch(e){report('تعذر النسخ، انسخ الكود من الخانة','error');}}
 });
 </script></body></html>

@@ -922,7 +922,9 @@ async function request(action,code){const r=await fetch(API,{method:'POST',cache
 function expiry(d){const t=d.expires_at_sa||d.expires_at||d.expiry;if(t)id('gateExpiry').textContent='انتهاء الاشتراك: '+t}
 function accepted(d){return d.valid===true||d.active===true||d.success===true||d.activated===true||d.status==='active'||d.status==='activated'||d.status==='valid'}
 id('gateCopyDevice').onclick=async()=>{try{await navigator.clipboard.writeText(currentDevice);message('تم نسخ رقم الجهاز')}catch{message('حدد رقم الجهاز وانسخه يدويًا')}};
-id('gateActivate').onclick=async()=>{const code=id('gateCode').value.trim();if(!code){message('أدخل كود التفعيل');return}id('gateActivate').disabled=true;message('جاري التحقق من الكود...');try{const d=await request('activate',code);if(!accepted(d))throw new Error('لم يؤكد الخادم نجاح التفعيل');localStorage.setItem(CODE_KEY,code);expiry(d);showSubscription(d);unlock()}catch(e){message(e.message||'تعذر التفعيل')}finally{id('gateActivate').disabled=false}};
+id('gateActivate').onclick=async()=>{const pasted=id('gateCode').value.normalize('NFKC').toUpperCase();
+const match=pasted.match(/HL-[A-Z0-9]{5}(?:-[A-Z0-9]{5}){2}-[A-Z0-9]{5}/);
+const code=match?match[0]:pasted.trim();if(!code){message('أدخل كود التفعيل');return}id('gateActivate').disabled=true;message('جاري التحقق من الكود...');try{const d=await request('activate',code);if(!accepted(d))throw new Error('لم يؤكد الخادم نجاح التفعيل');localStorage.setItem(CODE_KEY,code);expiry(d);showSubscription(d);unlock()}catch(e){message(e.message||'تعذر التفعيل')}finally{id('gateActivate').disabled=false}};
 // Fail closed: a saved code never grants access without a fresh server confirmation.
 lock();const saved=localStorage.getItem(CODE_KEY);if(saved){id('gateCode').value=saved;message('جاري التحقق من الاشتراك...');request('verify',saved).then(d=>{if(!accepted(d))throw Error('الاشتراك غير ساري');expiry(d);showSubscription(d);unlock()}).catch(e=>message('تعذّر التحقق من الاشتراك: '+(e.message||'تحقق من الإنترنت')))}else message('أدخل كود التفعيل الصادر من مولّد حلالي');
 })();

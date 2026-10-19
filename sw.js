@@ -1,6 +1,6 @@
 
 /* Halali offline shell v40 */
-const CACHE = 'halali-shell-v40-20261019';
+const CACHE = 'halali-shell-v41-20261019';
 
 const ASSETS = [
   './',

@@ -1,13 +1,11 @@
 
-/* Halali offline shell v40 */
-const CACHE = 'halali-shell-v41-20261019';
+const CACHE = 'halali-shell-v41';
 
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './icon-192.png',
-  './icon-512.png'
+  './icon-192.png'
 ];
 
 self.addEventListener('install', event => {
@@ -24,7 +22,10 @@ self.addEventListener('activate', event => {
       caches.keys().then(keys =>
         Promise.all(
           keys
-            .filter(key => key.startsWith('halali-shell-') && key !== CACHE)
+            .filter(key =>
+              key.startsWith('halali-shell-') &&
+              key !== CACHE
+            )
             .map(key => caches.delete(key))
         )
       ),
@@ -41,16 +42,25 @@ self.addEventListener('fetch', event => {
 
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match('./index.html').then(cached =>
-        cached || fetch(event.request)
-      )
+      fetch(event.request)
+        .then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+            event.waitUntil(
+              caches.open(CACHE)
+                .then(cache => cache.put('./index.html', copy))
+            );
+          }
+          return response;
+        })
+        .catch(() => caches.match('./index.html'))
     );
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then(cached =>
-      cached || fetch(event.request)
-    )
+    caches.match(event.request)
+      .then(cached => cached || fetch(event.request))
   );
 });
+

@@ -948,7 +948,7 @@ if(saved){
     showSubscription(d);
     unlock();
   }).catch(e=>{
-    if(!navigator.onLine&&offlineExpiry&&Date.parse(offlineExpiry)>Date.now()){
+    if(offlineExpiry&&Number.isFinite(Date.parse(offlineExpiry))&&Date.parse(offlineExpiry)>Date.now()){
       showSubscription({expires_at:offlineExpiry});
       unlock();
     }else{

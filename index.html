@@ -924,8 +924,39 @@ function accepted(d){return d.valid===true||d.active===true||d.success===true||d
 id('gateCopyDevice').onclick=async()=>{try{await navigator.clipboard.writeText(currentDevice);message('تم نسخ رقم الجهاز')}catch{message('حدد رقم الجهاز وانسخه يدويًا')}};
 id('gateActivate').onclick=async()=>{const pasted=id('gateCode').value.normalize('NFKC').toUpperCase();
 const match=pasted.match(/HL-[A-Z0-9]{5}(?:-[A-Z0-9]{5}){2}-[A-Z0-9]{5}/);
-const code=match?match[0]:pasted.trim();if(!code){message('أدخل كود التفعيل');return}id('gateActivate').disabled=true;message('جاري التحقق من الكود...');try{const d=await request('activate',code);if(!accepted(d))throw new Error('لم يؤكد الخادم نجاح التفعيل');localStorage.setItem(CODE_KEY,code);expiry(d);showSubscription(d);unlock()}catch(e){message(e.message||'تعذر التفعيل')}finally{id('gateActivate').disabled=false}};
+const code=match?match[0]:pasted.trim();if(!code){message('أدخل كود التفعيل');return}id('gateActivate').disabled=true;message('جاري التحقق من الكود...');try{const d=await request('activate',code);if(!accepted(d))throw new Error('لم يؤكد الخادم نجاح التفعيل');localStorage.setItem(CODE_KEY,code);
+const expiryDate=d.expires_at_sa||d.expires_at||d.expiry||d.expiresAt||d.expiration_date||d.subscription_expires_at;
+if(expiryDate&&Number.isFinite(Date.parse(expiryDate))){
+  localStorage.setItem('halali-subscription-expiry-v1',expiryDate);
+};expiry(d);showSubscription(d);unlock()}catch(e){message(e.message||'تعذر التفعيل')}finally{id('gateActivate').disabled=false}};
 // Fail closed: a saved code never grants access without a fresh server confirmation.
-lock();const saved=localStorage.getItem(CODE_KEY);if(saved){id('gateCode').value=saved;message('جاري التحقق من الاشتراك...');request('verify',saved).then(d=>{if(!accepted(d))throw Error('الاشتراك غير ساري');expiry(d);showSubscription(d);unlock()}).catch(e=>message('تعذّر التحقق من الاشتراك: '+(e.message||'تحقق من الإنترنت')))}else message('أدخل كود التفعيل الصادر من مولّد حلالي');
+lock();
+const saved=localStorage.getItem(CODE_KEY);
+const offlineExpiry=localStorage.getItem('halali-subscription-expiry-v1');
+
+if(saved){
+  id('gateCode').value=saved;
+  message('جاري التحقق من الاشتراك...');
+
+  request('verify',saved).then(d=>{
+    if(!accepted(d))throw new Error('الاشتراك غير صالح');
+    const expiryDate=d.expires_at_sa||d.expires_at||d.expiry||d.expiresAt||d.expiration_date||d.subscription_expires_at;
+    if(expiryDate&&Number.isFinite(Date.parse(expiryDate))){
+      localStorage.setItem('halali-subscription-expiry-v1',expiryDate);
+    }
+    expiry(d);
+    showSubscription(d);
+    unlock();
+  }).catch(e=>{
+    if(!navigator.onLine&&offlineExpiry&&Date.parse(offlineExpiry)>Date.now()){
+      showSubscription({expires_at:offlineExpiry});
+      unlock();
+    }else{
+      message('تعذر التحقق من الاشتراك: '+e.message);
+    }
+  });
+}else{
+  message('أدخل كود التفعيل الصادر من صاحب حلالي');
+}
 })();
 </script></body></html>
